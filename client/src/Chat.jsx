@@ -59,13 +59,16 @@ export default function Chat() {
     }
   }
 
-  function sendMessage(e) {
-    e.preventDefault();
+  function sendMessage(e, file = null) {
+    if (e) e.preventDefault();
     console.log("message is sent");
+
+    //console.log(file);
     ws.send(
       JSON.stringify({
         recipient: selectedUserId,
         text: newMessageText,
+        file,
       })
     );
     setnewMessageText("");
@@ -78,6 +81,25 @@ export default function Chat() {
         _id: Date.now(),
       },
     ]);
+
+    if (file) {
+      axios
+        .get("http://localhost:4000/messages/" + selectedUserId)
+        .then((res) => {
+          setMessages(res.data);
+        });
+    }
+  }
+
+  function sendFile(e) {
+    const reader = new FileReader();
+    reader.readAsDataURL(e.target.files[0]);
+    reader.onload = () => {
+      sendMessage(null, {
+        name: e.target.files[0].name,
+        data: reader.result,
+      });
+    };
   }
 
   // this use effect is for pointing to the newly recieved
@@ -114,11 +136,6 @@ export default function Chat() {
         offlinePeople[p._id] = p;
       });
       setOfflinePeople(offlinePeople);
-
-      console.log("onlinepeople");
-      console.log(onlinePeopleExcludingOurUser);
-      console.log("offlinePeople");
-      console.log(offlinePeople);
     });
   }, [onlinePeople]);
 
@@ -213,6 +230,31 @@ export default function Chat() {
                       }
                     >
                       {m.text}
+                      {m.file && (
+                        <div className="flex items-center gap-1">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"
+                            />
+                          </svg>
+                          <a
+                            target="blank"
+                            className="border-b border-gray-400"
+                            href={"http://localhost:4000/uploads/" + m.file}
+                          >
+                            {m.file}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -224,7 +266,7 @@ export default function Chat() {
 
         {/* This is the text area for form and button*/}
         {!!selectedUserId && (
-          <form className="flex gap-2 mb-2 " onSubmit={sendMessage}>
+          <form className="flex gap-1 mb-2 " onSubmit={sendMessage}>
             <input
               value={newMessageText}
               onChange={(e) => {
@@ -234,6 +276,26 @@ export default function Chat() {
               placeholder="Type your message here"
               className="bg-white flex-grow p-2 ml-2 rounded-sm focus:outline-none "
             />
+            <label
+              className="bg-blue-500 p-2 text-white cursor-pointer rounded-sm"
+              onChange={sendFile}
+            >
+              <input type="file" hidden />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-6 h-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"
+                />
+              </svg>
+            </label>
             <button
               type="submit"
               className="bg-blue-500 p-2 text-white mr-2 rounded-sm"
